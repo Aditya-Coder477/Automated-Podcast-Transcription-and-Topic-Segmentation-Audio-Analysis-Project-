@@ -1,0 +1,14 @@
+# Ignore Virtual Environment (Important!)
+venv/
+__pycache__/
+
+# Ignore Data & Large Files
+data/
+temp_processing_zone/
+*.zip
+*.wav
+*.mp3
+
+# Ignore IDE settings
+.vscode/
+.idea/

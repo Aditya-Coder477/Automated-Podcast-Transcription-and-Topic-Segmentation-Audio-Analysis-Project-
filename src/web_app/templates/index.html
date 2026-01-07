@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Intelligence</title>
+    <style>
+        /* --- RESET & BASE STYLES --- */
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; }
+
+        /* --- LAYOUT CONTAINER --- */
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+
+        /* --- 1. HEADER --- */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 30px; }
+        .brand { font-size: 1.2em; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 10px; }
+        .user-profile { display: flex; align-items: center; gap: 15px; font-size: 0.9em; color: #666; }
+        .avatar { width: 35px; height: 35px; background: #ddd; border-radius: 50%; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* --- 2. HERO UPLOAD SECTION --- */
+        .hero-card { background: linear-gradient(135deg, #4DB6AC 0%, #26A69A 100%); border-radius: 20px; padding: 40px; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(38, 166, 154, 0.3); margin-bottom: 40px; position: relative; overflow: hidden; }
+        .waveform-decoration { font-size: 5em; opacity: 0.3; position: absolute; right: 40px; font-family: monospace; letter-spacing: -5px; pointer-events: none; }
+        .upload-content h2 { margin: 0 0 10px 0; font-size: 1.8em; }
+        .upload-content p { margin: 0 0 25px 0; opacity: 0.9; font-size: 0.95em; }
+        .file-upload-wrapper { position: relative; display: inline-block; }
+        .btn-browse { background: white; color: #00897B; padding: 12px 25px; border-radius: 30px; font-weight: 600; cursor: pointer; border: none; transition: transform 0.2s; display: inline-block; }
+        .btn-browse:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        #fileInput { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+        /* --- 3. SEARCH & FILTERS --- */
+        .controls-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+        .search-wrapper { flex-grow: 1; max-width: 400px; position: relative; }
+        .search-input { width: 100%; padding: 12px 20px 12px 40px; border: 1px solid #e0e0e0; border-radius: 30px; background: white; font-size: 0.95em; outline: none; transition: border 0.3s; }
+        .search-input:focus { border-color: #26A69A; }
+        .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; }
+
+        .filters { display: flex; gap: 10px; }
+        .filter-pill { padding: 8px 16px; border-radius: 20px; background: white; color: #666; font-size: 0.9em; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .filter-pill:hover { background: #f5f5f5; }
+        .filter-pill.active { background: #E0F2F1; color: #00796B; font-weight: 600; }
+
+        /* --- 4. GRID LAYOUT --- */
+        .section-title { font-size: 0.9em; font-weight: 700; color: #333; margin-bottom: 15px; }
+        .episodes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+
+        .card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; text-decoration: none; color: inherit; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .card-id { font-weight: 700; font-size: 1.1em; color: #333; }
+        .card-time { font-size: 0.8em; color: #999; }
+        .card-body { display: flex; gap: 15px; margin-bottom: 20px; }
+        .icon-box { width: 50px; height: 50px; background: linear-gradient(135deg, #4DB6AC, #26A69A); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white; font-size: 1.2em; }
+        .excerpt { font-size: 0.9em; color: #555; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .card-footer { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag { background: #E0F2F1; color: #00796B; padding: 4px 10px; border-radius: 6px; font-size: 0.75em; font-weight: 600; }
+
+        /* Loading Overlay */
+        #loading-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.9); z-index: 999; text-align: center; padding-top: 20%; font-size: 1.5em; color: #00796B; }
+    </style>
+</head>
+<body>
+
+    <div id="loading-overlay">
+        ⏳ Analyzing Audio...<br><small style="font-size:0.6em; color:#666">Transcribing, Segmenting & Extracting Keywords</small>
+    </div>
+
+    <div class="container">
+        
+        <div class="top-nav">
+            <div class="brand"><span style="color:#00796B; font-size:1.4em;">∿</span> Podcast Intelligence</div>
+            <div class="user-profile">
+                <span>14/20 hours used</span>
+                <div class="avatar"><img src="https://ui-avatars.com/api/?name=Dr+House&background=0D8ABC&color=fff" alt="User"></div>
+            </div>
+        </div>
+
+        <div class="hero-card">
+            <div class="upload-content">
+                <h2>Drop audio file to begin<br>Clinical Extraction</h2>
+                <p>Supports MP3, WAV (Up to 2GB).</p>
+                <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="file-upload-wrapper">
+                        <button type="button" class="btn-browse">Browse Files</button>
+                        <input type="file" id="fileInput" name="file" accept=".mp3,.wav" required onchange="handleUpload()">
+                    </div>
+                </form>
+            </div>
+            <div class="waveform-decoration">∿∿∿</div>
+        </div>
+
+        <div class="controls-bar">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search transcripts, keywords..." onkeyup="filterEpisodes()">
+            </div>
+
+            <div class="filters">
+                <div class="filter-pill active" onclick="filterByTag('all', this)">All</div>
+                <div class="filter-pill" onclick="filterByTag('cardiology', this)">Cardiology</div>
+                <div class="filter-pill" onclick="filterByTag('pain', this)">Pain</div>
+                <div class="filter-pill" onclick="filterByTag('fever', this)">Fever</div>
+            </div>
+        </div>
+
+        <div class="section-title">Sticky Insights Bar</div>
+        {% if episodes %}
+        <div class="episodes-grid" id="episodesGrid">
+            {% for ep in episodes %}
+            <a href="{{ url_for('player', filename=ep.filename) }}" class="card" 
+               data-search="{{ ep.name }} {{ ep.description }} {{ ep.keywords|join(' ') }}">
+                <div class="card-header">
+                    <div class="card-id">{{ ep.name }}</div>
+                    <div class="card-time">Processed</div>
+                </div>
+                <div class="card-body">
+                    <div class="icon-box">▶</div>
+                    <div class="excerpt">{{ ep.description if ep.description else "No summary available." }}</div>
+                </div>
+                <div class="card-footer">
+                    {% for kw in ep.keywords %}
+                        <span class="tag">#{{ kw }}</span>
+                    {% endfor %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+            <div style="text-align:center; padding:40px; color:#888;"><h3>No files found.</h3></div>
+        {% endif %}
+
+    </div>
+
+    <script>
+        // 1. Upload Logic
+        function handleUpload() {
+            const input = document.getElementById('fileInput');
+            if (input.files.length > 0) {
+                document.getElementById('loading-overlay').style.display = 'block';
+                document.getElementById('uploadForm').submit();
+            }
+        }
+
+        // 2. Keyword Search Logic (Real-time)
+        function filterEpisodes() {
+            var input = document.getElementById('searchInput');
+            var filter = input.value.toLowerCase();
+            var grid = document.getElementById('episodesGrid');
+            var cards = grid.getElementsByClassName('card');
+
+            for (var i = 0; i < cards.length; i++) {
+                var searchData = cards[i].getAttribute('data-search').toLowerCase();
+                if (searchData.indexOf(filter) > -1) {
+                    cards[i].style.display = "";
+                } else {
+                    cards[i].style.display = "none";
+                }
+            }
+        }
+
+        // 3. Pill Filter Logic
+        function filterByTag(tag, element) {
+            // Update Active Style
+            var pills = document.getElementsByClassName('filter-pill');
+            for(var p of pills) p.classList.remove('active');
+            element.classList.add('active');
+
+            // Set Search Input & Trigger Filter
+            var input = document.getElementById('searchInput');
+            if(tag === 'all') {
+                input.value = "";
+            } else {
+                input.value = tag;
+            }
+            filterEpisodes(); // Run the search function
+        }
+    </script>
+</body>
+</html>
